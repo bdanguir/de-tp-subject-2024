@@ -1,4 +1,4 @@
-from data_agregation import (
+"""from data_agregation import (
     create_agregate_tables,
     agregate_dim_city,
     agregate_dim_station,
@@ -9,9 +9,13 @@ from data_consolidation import (
     consolidate_city_data,
     consolidate_station_data,
     consolidate_station_statement_data
-)
-from data_ingestion import (
+)"""
+from data_ingestion_paris import (
     get_paris_realtime_bicycle_data
+)
+
+from data_ingestion_nantes import (
+    get_nantes_realtime_bicycle_data
 )
 
 def main():
@@ -20,8 +24,10 @@ def main():
 
     print("Data ingestion started.")
     get_paris_realtime_bicycle_data()
+    get_nantes_realtime_bicycle_data()
     print("Data ingestion ended.")
 
+    """ 
     # data consolidation
     print("Consolidation data started.")
     create_consolidate_tables()
@@ -37,6 +43,6 @@ def main():
     agregate_dim_station()
     agregate_fact_station_statements()
     print("Agregate data ended.")
-
+    """
 if __name__ == "__main__":
     main()
