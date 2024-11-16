@@ -4,12 +4,13 @@
     agregate_dim_station,
     agregate_fact_station_statements
 )
+"""
 from data_consolidation import (
     create_consolidate_tables,
-    consolidate_city_data,
+    # consolidate_city_data,
     consolidate_station_data,
-    consolidate_station_statement_data
-)"""
+    #consolidate_station_statement_data
+)
 from data_ingestion import (
     get_paris_realtime_bicycle_data,
     get_nantes_realtime_bicycle_data
@@ -25,12 +26,18 @@ def main():
     get_nantes_realtime_bicycle_data()
     print("Data ingestion ended.")
 
-    """ 
+    
     # data consolidation
     print("Consolidation data started.")
     create_consolidate_tables()
+    """
     consolidate_city_data()
-    consolidate_station_data()
+    """
+    consolidate_station_data("paris")
+    consolidate_station_data("nantes")
+    print("Consolidation data ended.")
+
+    """
     consolidate_station_statement_data()
     print("Consolidation data ended.")
 
