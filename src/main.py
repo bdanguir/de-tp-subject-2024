@@ -10,13 +10,11 @@ from data_consolidation import (
     consolidate_station_data,
     consolidate_station_statement_data
 )"""
-from data_ingestion_paris import (
-    get_paris_realtime_bicycle_data
-)
-
-from data_ingestion_nantes import (
+from data_ingestion import (
+    get_paris_realtime_bicycle_data,
     get_nantes_realtime_bicycle_data
 )
+
 
 def main():
     print("Process start.")
