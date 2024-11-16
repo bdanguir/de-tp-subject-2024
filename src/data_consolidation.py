@@ -56,32 +56,57 @@ def consolidate_station_data():
     con.execute("INSERT OR REPLACE INTO CONSOLIDATE_STATION SELECT * FROM paris_station_data_df;")
 
 
-def consolidate_city_data():
-
-    con = duckdb.connect(database = "data/duckdb/mobility_analysis.duckdb", read_only = False)
+def consolidate_city_data(city):
+    con = duckdb.connect(database="data/duckdb/mobility_analysis.duckdb", read_only=False)
     data = {}
 
-    with open(f"data/raw_data/{today_date}/paris_realtime_bicycle_data.json") as fd:
+    # Load the JSON data based on the city
+    if city.lower() == "paris":
+        file_path = f"data/raw_data/{today_date}/paris_realtime_bicycle_data.json"
+    elif city.lower() == "nantes":
+        file_path = f"data/raw_data/{today_date}/nantes_realtime_bicycle_data.json"
+    else:
+        print("City not supported")
+        return
+
+    with open(file_path) as fd:
         data = json.load(fd)
 
     raw_data_df = pd.json_normalize(data)
-    raw_data_df["nb_inhabitants"] = None
 
-    city_data_df = raw_data_df[[
-        "code_insee_commune",
-        "nom_arrondissement_communes",
-        "nb_inhabitants"
-    ]]
-    city_data_df.rename(columns={
-        "code_insee_commune": "id",
-        "nom_arrondissement_communes": "name"
-    }, inplace=True)
-    city_data_df.drop_duplicates(inplace = True)
+    # Process data based on the city
+    if city.lower() == "paris":
+        raw_data_df["nb_inhabitants"] = None
+        city_data_df = raw_data_df[[
+            "code_insee_commune",
+            "nom_arrondissement_communes",
+            "nb_inhabitants"
+        ]]
+        city_data_df.rename(columns={
+            "code_insee_commune": "id",
+            "nom_arrondissement_communes": "name"
+        }, inplace=True)
 
+    elif city.lower() == "nantes":
+        raw_data_df["nb_inhabitants"] = None
+        raw_data_df["id"]="Unknown"
+        city_data_df = raw_data_df[[
+            "id",
+            "contract_name",
+            "nb_inhabitants"
+        ]]
+        city_data_df.rename(columns={
+            "contract_name": "name"
+        }, inplace=True)
+
+    # Common processing
+    city_data_df.drop_duplicates(inplace=True)
     city_data_df["created_date"] = date.today()
-    print(city_data_df)
-    
+
+
+    # Insert into the database
     con.execute("INSERT OR REPLACE INTO CONSOLIDATE_CITY SELECT * FROM city_data_df;")
+    con.close()
 
 
 def consolidate_station_statement_data():
