@@ -44,31 +44,33 @@ def serialize_data(raw_json: str, file_name: str):
         fd.write(raw_json)
 
 
-def get_nantes_communes_data():
+def get_all_communes_data():
     """
-    Fonction pour ingérer les données des communes de Nantes depuis l'API `geo.api.gouv.fr`
-    et les sauvegarder dans un fichier JSON.
+    Function to fetch data for all communes in France from `geo.api.gouv.fr` 
+    and save it into a JSON file.
     """
-    url = "https://geo.api.gouv.fr/communes?codeDepartement=44&fields=nom,code,population,codeDepartement&format=json"
+    # API URL for all communes
+    url = "https://geo.api.gouv.fr/communes?fields=nom,code,population,codeDepartement&format=json"
     
-    # Effectuer la requête HTTP GET
+    # Perform the HTTP GET request
     response = requests.get(url)
     
-    # Vérifier si la requête a réussi
+    # Check if the request was successful
     if response.status_code == 200:
-        print("Données des communes de Nantes récupérées avec succès.")
+        print("All communes data retrieved successfully.")
         
-        # Nommer le fichier avec la date du jour
+        # Name the file with today's date
         today_date = datetime.now().strftime("%Y-%m-%d")
-        file_path = f"data/raw_data/{today_date}/nantes_communes_data.json"
+        file_path = f"data/raw_data/{today_date}/all_communes_data.json"
         
-        # Créer le répertoire s'il n'existe pas
+        # Create the directory if it does not exist
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         
-        # Sauvegarder les données dans un fichier JSON
+        # Save the data into a JSON file
         with open(file_path, "w") as file:
             file.write(response.text)
         
-        print(f"Données sauvegardées dans {file_path}")
+        print(f"Data saved in {file_path}")
     else:
-        print(f"Erreur lors de la récupération des données : {response.status_code}")
+        print(f"Error while fetching data: {response.status_code}")
+

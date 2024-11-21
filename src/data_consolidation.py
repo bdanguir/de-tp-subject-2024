@@ -110,24 +110,24 @@ def consolidate_station_data(city):
         print("City not supported")
 
 
-<<<<<<< HEAD
 def consolidate_city_data(city):
+    import json
+    import os
+    import pandas as pd
+    import duckdb
+    from datetime import date
+
     con = duckdb.connect(database="data/duckdb/mobility_analysis.duckdb", read_only=False)
-||||||| f65fa32
-def consolidate_city_data():
+    
+    # Load all communes data for population lookup
+    with open("data/raw_data/2024-11-21/all_communes_data.json") as fd:
+        all_communes_data = json.load(fd)
+    communes_df = pd.json_normalize(all_communes_data)
+    
+    # Ensure population lookup DataFrame has required columns
+    population_lookup = communes_df[["code", "population"]].rename(columns={"code": "id", "population": "nb_inhabitants"})
 
-    con = duckdb.connect(database = "data/duckdb/mobility_analysis.duckdb", read_only = False)
-=======
-
-
-"""
-def consolidate_city_data():
-
-    con = duckdb.connect(database = "data/duckdb/mobility_analysis.duckdb", read_only = False)
->>>>>>> b4c1c9c880293fccd717e05896be02b97c557383
-    data = {}
-
-    # Load the JSON data based on the city
+    # Load city-specific data
     if city.lower() == "paris":
         file_path = f"data/raw_data/{today_date}/paris_realtime_bicycle_data.json"
     elif city.lower() == "nantes":
@@ -143,37 +143,41 @@ def consolidate_city_data():
 
     # Process data based on the city
     if city.lower() == "paris":
-        raw_data_df["nb_inhabitants"] = None
         city_data_df = raw_data_df[[
             "code_insee_commune",
-            "nom_arrondissement_communes",
-            "nb_inhabitants"
-        ]]
+            "nom_arrondissement_communes"
+        ]].copy()
         city_data_df.rename(columns={
             "code_insee_commune": "id",
             "nom_arrondissement_communes": "name"
         }, inplace=True)
-
     elif city.lower() == "nantes":
-        raw_data_df["nb_inhabitants"] = None
-        raw_data_df["id"]="Unknown"
+        raw_data_df["id"] = "44109"
         city_data_df = raw_data_df[[
             "id",
-            "contract_name",
-            "nb_inhabitants"
-        ]]
+            "contract_name"
+        ]].copy()
         city_data_df.rename(columns={
             "contract_name": "name"
         }, inplace=True)
+
+    # Join with population data
+    city_data_df = city_data_df.merge(population_lookup, on="id", how="left")
+
+    # Fill missing population with 0 or a default value if necessary
+    city_data_df["nb_inhabitants"].fillna(0, inplace=True)
 
     # Common processing
     city_data_df.drop_duplicates(inplace=True)
     city_data_df["created_date"] = date.today()
 
+    # Register the DataFrame with DuckDB
+    con.register("city_data_df", city_data_df)
 
     # Insert into the database
     con.execute("INSERT OR REPLACE INTO CONSOLIDATE_CITY SELECT * FROM city_data_df;")
     con.close()
+
 
 
 def consolidate_station_statement_data():
@@ -203,4 +207,3 @@ def consolidate_station_statement_data():
     }, inplace=True)
 
     con.execute("INSERT OR REPLACE INTO CONSOLIDATE_STATION_STATEMENT SELECT * FROM paris_station_statement_data_df;")
-"""
