@@ -73,4 +73,3 @@ def get_all_communes_data():
         print(f"Data saved in {file_path}")
     else:
         print(f"Error while fetching data: {response.status_code}")
-

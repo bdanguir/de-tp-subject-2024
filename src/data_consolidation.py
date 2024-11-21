@@ -77,7 +77,7 @@ def consolidate_station_data(city):
         nantes_raw_data_df["number"] = nantes_raw_data_df["number"].astype(str)
         nantes_raw_data_df["id"] = nantes_raw_data_df["number"].apply(lambda x: f"{NANTES_CITY_CODE}-{x}")
         nantes_raw_data_df["created_date"] = date.today()
-        nantes_raw_data_df["city_code"] = None
+        nantes_raw_data_df["city_code"] = "44109"
 
         # Créer un nouveau DataFrame pour éviter le SettingWithCopyWarning
         nantes_station_data_df = nantes_raw_data_df[[

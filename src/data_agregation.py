@@ -50,7 +50,6 @@ def agregate_dim_city():
 def agregate_fact_station_statements():
     con = duckdb.connect(database = "data/duckdb/mobility_analysis.duckdb", read_only = False)
 
-    # First we agregate the Paris station statement data
     sql_statement = """
     INSERT OR REPLACE INTO FACT_STATION_STATEMENT
     SELECT STATION_ID, cc.ID as CITY_ID, BICYCLE_DOCKS_AVAILABLE, BICYCLE_AVAILABLE, LAST_STATEMENT_DATE, current_date as CREATED_DATE
@@ -61,6 +60,7 @@ def agregate_fact_station_statements():
         AND CONSOLIDATE_STATION_STATEMENT.CREATED_DATE = (SELECT MAX(CREATED_DATE) FROM CONSOLIDATE_STATION_STATEMENT)
         AND CONSOLIDATE_STATION.CREATED_DATE = (SELECT MAX(CREATED_DATE) FROM CONSOLIDATE_STATION)
         AND cc.CREATED_DATE = (SELECT MAX(CREATED_DATE) FROM CONSOLIDATE_CITY);
-    """
-    
+    """ 
     con.execute(sql_statement)
+
+    con.close()

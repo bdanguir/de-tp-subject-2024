@@ -1,11 +1,11 @@
-"""
+
 from data_agregation import (
     create_agregate_tables,
     agregate_dim_city,
     agregate_dim_station,
     agregate_fact_station_statements
 )
-"""
+
 from data_consolidation import (
     create_consolidate_tables,
     consolidate_city_data,
@@ -42,7 +42,6 @@ def main():
     consolidate_station_statement_data("nantes")
     print("Consolidation data ended.")
 
-    """
     # data agregation
     print("Agregate data started.")
     create_agregate_tables()
@@ -50,7 +49,7 @@ def main():
     agregate_dim_station()
     agregate_fact_station_statements()
     print("Agregate data ended.")
-    """
+    
 
 if __name__ == "__main__":
     main()
