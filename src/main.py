@@ -38,12 +38,11 @@ def main():
     consolidate_city_data("nantes")
     consolidate_station_data("paris")
     consolidate_station_data("nantes")
+    consolidate_station_statement_data("paris")
+    consolidate_station_statement_data("nantes")
     print("Consolidation data ended.")
 
     """
-    consolidate_station_statement_data()
-    print("Consolidation data ended.")
-
     # data agregation
     print("Agregate data started.")
     create_agregate_tables()

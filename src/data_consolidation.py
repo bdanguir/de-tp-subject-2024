@@ -180,30 +180,65 @@ def consolidate_city_data(city):
 
 
 
-def consolidate_station_statement_data():
+def consolidate_station_statement_data(city):
+    import json
+    import pandas as pd
+    import duckdb
+    from datetime import datetime, date
 
-    con = duckdb.connect(database = "data/duckdb/mobility_analysis.duckdb", read_only = False)
+    con = duckdb.connect(database="data/duckdb/mobility_analysis.duckdb", read_only=False)
     data = {}
 
-    # Consolidate station statement data for Paris
-    with open(f"data/raw_data/{today_date}/paris_realtime_bicycle_data.json") as fd:
+    # Determine file path based on the city
+    if city.lower() == "paris":
+        file_path = f"data/raw_data/{today_date}/paris_realtime_bicycle_data.json"
+        city_code = PARIS_CITY_CODE
+    elif city.lower() == "nantes":
+        file_path = f"data/raw_data/{today_date}/nantes_realtime_bicycle_data.json"
+        city_code = NANTES_CITY_CODE
+    else:
+        print("City not supported")
+        return
+
+    # Load the data
+    with open(file_path) as fd:
         data = json.load(fd)
 
-    paris_raw_data_df = pd.json_normalize(data)
-    paris_raw_data_df["station_id"] = paris_raw_data_df["stationcode"].apply(lambda x: f"{PARIS_CITY_CODE}-{x}")
-    paris_raw_data_df["created_date"] = datetime.fromisoformat('2024-10-21')
-    paris_station_statement_data_df = paris_raw_data_df[[
-        "station_id",
-        "numdocksavailable",
-        "numbikesavailable",
-        "duedate",
-        "created_date"
-    ]]
-    
-    paris_station_statement_data_df.rename(columns={
-        "numdocksavailable": "bicycle_docks_available",
-        "numbikesavailable": "bicycle_available",
-        "duedate": "last_statement_date",
-    }, inplace=True)
+    # Normalize JSON data into a DataFrame
+    raw_data_df = pd.json_normalize(data)
 
-    con.execute("INSERT OR REPLACE INTO CONSOLIDATE_STATION_STATEMENT SELECT * FROM paris_station_statement_data_df;")
+    # Add city-specific processing
+    if city.lower() == "paris":
+        raw_data_df["station_id"] = raw_data_df["stationcode"].apply(lambda x: f"{city_code}-{x}")
+        raw_data_df["created_date"] = date.today()
+        station_statement_data_df = raw_data_df[[
+            "station_id",
+            "numdocksavailable",
+            "numbikesavailable",
+            "duedate",
+            "created_date"
+        ]]
+        station_statement_data_df.rename(columns={
+            "numdocksavailable": "bicycle_docks_available",
+            "numbikesavailable": "bicycle_available",
+            "duedate": "last_statement_date",
+        }, inplace=True)
+    elif city.lower() == "nantes":
+        raw_data_df["station_id"] = raw_data_df["number"].apply(lambda x: f"{city_code}-{x}")
+        raw_data_df["created_date"] = date.today()
+        station_statement_data_df = raw_data_df[[
+            "station_id",
+            "bike_stands",
+            "available_bikes",
+            "last_update",
+            "created_date"
+        ]]
+        station_statement_data_df.rename(columns={
+            "bike_stands": "bicycle_docks_available",
+            "available_bikes": "bicycle_available",
+            "last_update": "last_statement_date",
+        }, inplace=True)
+
+    # Insert into the database
+    con.execute("INSERT OR REPLACE INTO CONSOLIDATE_STATION_STATEMENT SELECT * FROM station_statement_data_df;")
+    con.close()
