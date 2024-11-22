@@ -7,6 +7,7 @@ import pandas as pd
 today_date = datetime.now().strftime("%Y-%m-%d")
 PARIS_CITY_CODE = 1
 NANTES_CITY_CODE = 2
+TOULOUSE_CITY_CODE = 3
 
 def create_consolidate_tables():
     con = duckdb.connect(database = "data/duckdb/mobility_analysis.duckdb", read_only = False)
@@ -22,7 +23,7 @@ def consolidate_station_data(city):
 
     # Charger les données pour Paris et Nantes
     data = {city: json.load(open(f"data/raw_data/{today_date}/{city}_realtime_bicycle_data.json")) 
-            for city in ["paris", "nantes"]}
+            for city in ["paris", "nantes","toulouse"]}
 
     if city.lower() == "paris":
         # Charger les données pour Paris
@@ -105,7 +106,48 @@ def consolidate_station_data(city):
         }, inplace=True)
 
         con.execute("INSERT OR REPLACE INTO CONSOLIDATE_STATION SELECT * FROM nantes_station_data_df;")
+    
+    elif city.lower() == "toulouse":
+        # Charger les données pour Toulouse
+        toulouse_raw_data_df = pd.json_normalize(data["toulouse"])
 
+        if "number" not in toulouse_raw_data_df.columns:
+            print("Erreur : La colonne 'number' est manquante dans les données de Nantes")
+            return
+
+        # Convertir la colonne 'number' en chaîne de caractères
+        toulouse_raw_data_df["number"] = toulouse_raw_data_df["number"].astype(str)
+        toulouse_raw_data_df["id"] = toulouse_raw_data_df["number"].apply(lambda x: f"{TOULOUSE_CITY_CODE}-{x}")
+        toulouse_raw_data_df["created_date"] = date.today()
+        toulouse_raw_data_df["city_code"] = "31555"
+
+        # Créer un nouveau DataFrame pour éviter le SettingWithCopyWarning
+        toulouse_station_data_df = toulouse_raw_data_df[[
+            "id",
+            "number",
+            "name",
+            "contract_name",
+            "city_code",
+            "address",
+            "position.lon",
+            "position.lat",
+            "status",
+            "created_date",
+            "available_bike_stands"
+        ]].copy()
+
+        toulouse_station_data_df.rename(columns={
+            "number": "code",
+            "name": "name",
+            "position.lon": "longitude",
+            "position.lat": "latitude",
+            "status": "status",
+            "contract_name": "city_name",
+            "city_code": "city_code"
+        }, inplace=True)
+
+        con.execute("INSERT OR REPLACE INTO CONSOLIDATE_STATION SELECT * FROM toulouse_station_data_df;")
+    
     else:
         print("City not supported")
 
@@ -132,6 +174,8 @@ def consolidate_city_data(city):
         file_path = f"data/raw_data/{today_date}/paris_realtime_bicycle_data.json"
     elif city.lower() == "nantes":
         file_path = f"data/raw_data/{today_date}/nantes_realtime_bicycle_data.json"
+    elif city.lower() == "toulouse":
+        file_path = f"data/raw_data/{today_date}/toulouse_realtime_bicycle_data.json"
     else:
         print("City not supported")
         return
@@ -153,6 +197,15 @@ def consolidate_city_data(city):
         }, inplace=True)
     elif city.lower() == "nantes":
         raw_data_df["id"] = "44109"
+        city_data_df = raw_data_df[[
+            "id",
+            "contract_name"
+        ]].copy()
+        city_data_df.rename(columns={
+            "contract_name": "name"
+        }, inplace=True)
+    elif city.lower() == "toulouse":
+        raw_data_df["id"] = "31555"
         city_data_df = raw_data_df[[
             "id",
             "contract_name"
@@ -196,6 +249,9 @@ def consolidate_station_statement_data(city):
     elif city.lower() == "nantes":
         file_path = f"data/raw_data/{today_date}/nantes_realtime_bicycle_data.json"
         city_code = NANTES_CITY_CODE
+    elif city.lower() == "toulouse":
+        file_path = f"data/raw_data/{today_date}/toulouse_realtime_bicycle_data.json"
+        city_code = TOULOUSE_CITY_CODE
     else:
         print("City not supported")
         return
@@ -224,6 +280,21 @@ def consolidate_station_statement_data(city):
             "duedate": "last_statement_date",
         }, inplace=True)
     elif city.lower() == "nantes":
+        raw_data_df["station_id"] = raw_data_df["number"].apply(lambda x: f"{city_code}-{x}")
+        raw_data_df["created_date"] = date.today()
+        station_statement_data_df = raw_data_df[[
+            "station_id",
+            "bike_stands",
+            "available_bikes",
+            "last_update",
+            "created_date"
+        ]]
+        station_statement_data_df.rename(columns={
+            "bike_stands": "bicycle_docks_available",
+            "available_bikes": "bicycle_available",
+            "last_update": "last_statement_date",
+        }, inplace=True)
+    elif city.lower() == "toulouse":
         raw_data_df["station_id"] = raw_data_df["number"].apply(lambda x: f"{city_code}-{x}")
         raw_data_df["created_date"] = date.today()
         station_statement_data_df = raw_data_df[[

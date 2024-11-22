@@ -15,8 +15,8 @@ from data_consolidation import (
 from data_ingestion import (
     get_paris_realtime_bicycle_data,
     get_nantes_realtime_bicycle_data,
-    get_all_communes_data
-
+    get_all_communes_data,
+    get_toulouse_realtime_bicycle_data
 )
 
 
@@ -27,6 +27,7 @@ def main():
     print("Data ingestion started.")
     get_paris_realtime_bicycle_data()
     get_nantes_realtime_bicycle_data()
+    get_toulouse_realtime_bicycle_data()
     get_all_communes_data()
     print("Data ingestion ended.")
 
@@ -36,10 +37,13 @@ def main():
     create_consolidate_tables()
     consolidate_city_data("paris")
     consolidate_city_data("nantes")
+    consolidate_city_data("toulouse")
     consolidate_station_data("paris")
     consolidate_station_data("nantes")
+    consolidate_station_data("toulouse")
     consolidate_station_statement_data("paris")
     consolidate_station_statement_data("nantes")
+    consolidate_station_statement_data("toulouse")
     print("Consolidation data ended.")
 
     # data agregation

@@ -43,6 +43,28 @@ def serialize_data(raw_json: str, file_name: str):
     with open(f"data/raw_data/{today_date}/{file_name}", "w") as fd:
         fd.write(raw_json)
 
+# Ingestion : Toulouse
+
+def get_toulouse_realtime_bicycle_data():
+    
+    url = "https://data.toulouse-metropole.fr/api/explore/v2.1/catalog/datasets/api-velo-toulouse-temps-reel/exports/json?lang=fr&timezone=Europe%2FParis"
+    
+    response = requests.request("GET", url)
+    
+    serialize_data(response.text, "toulouse_realtime_bicycle_data.json")
+
+def serialize_data(raw_json: str, file_name: str):
+
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    
+    if not os.path.exists(f"data/raw_data/{today_date}"):
+        os.makedirs(f"data/raw_data/{today_date}")
+    
+    with open(f"data/raw_data/{today_date}/{file_name}", "w") as fd:
+        fd.write(raw_json)
+
+
+# Ingestion : communes
 
 def get_all_communes_data():
     """
