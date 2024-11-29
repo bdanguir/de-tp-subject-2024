@@ -35,12 +35,14 @@ Aussi, pour contourner l'absence du code INSEE dans les données de Nantes et To
 
 Voici comment cela a été fait :
 
-    1- **Requête SQL dynamique** : Nous avons utilisé une requête SQL pour chercher le id (code INSEE) correspondant au nom de la ville dans CONSOLIDATE_CITY :
+1- **Requête SQL dynamique** : Nous avons utilisé une requête SQL pour chercher le id (code INSEE) correspondant au nom de la ville dans CONSOLIDATE_CITY :
 
         ```sql
-        SELECT id FROM CONSOLIDATE_CITY WHERE LOWER(city_name) = '{city.lower()}'
+        
+        SELECT id FROM CONSOLIDATE_CITY WHERE LOWER(city_name) = '{city.lower()}';
         ```
-    2- **Association du code INSEE aux données des stations** : Une fois le code récupéré, il a été ajouté dans les données des stations en tant que city_code. Ce champ a ensuite été utilisé pour identifier les stations de manière unique et cohérente.
+
+2- **Association du code INSEE aux données des stations** : Une fois le code récupéré, il a été ajouté dans les données des stations en tant que city_code. Ce champ a ensuite été utilisé pour identifier les stations de manière unique et cohérente.
 
 ### Agrégation des données
 
@@ -78,10 +80,3 @@ Voici ce que retourne notre code :
 
 ### Allons plus loin : Construction du pipeline sur Azure
 
-
-
-- Le projet est correctement documenté (installation, exécution, explication de la logique du pipeline) (5 points)
-
-- 2 points bonus pour la clarté générale du code (commentaires, noms de variables, etc.)
-
-- 2 points bonus si d'autres sources de données sont ajoutées pour enrichir l'analyse finale. Attention, le projet doit fonctionner correctement.
