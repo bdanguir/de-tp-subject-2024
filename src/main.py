@@ -22,8 +22,8 @@ from data_ingestion import (
 
 def main():
     print("Process start.")
-    # data ingestion
 
+    # data ingestion
     print("Data ingestion started.")
     get_paris_realtime_bicycle_data()
     get_nantes_realtime_bicycle_data()
@@ -31,7 +31,6 @@ def main():
     get_all_communes_data()
     print("Data ingestion ended.")
 
-    
     # data consolidation
     print("Consolidation data started.")
     create_consolidate_tables()

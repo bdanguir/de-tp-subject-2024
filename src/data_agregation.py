@@ -2,7 +2,12 @@ import duckdb
 
 
 def create_agregate_tables():
-    con = duckdb.connect(database = "data/duckdb/mobility_analysis.duckdb", read_only = False)
+    """
+    Crée les tables d'agrégation nécessaires à partir des instructions SQL stockées dans un fichier.
+    Lit le fichier SQL contenant les commandes de création des tables,
+    et exécute chaque commande dans la base de données DuckDB.
+    """
+    con = duckdb.connect(database="data/duckdb/mobility_analysis.duckdb", read_only=False)
     with open("data/sql_statements/create_agregate_tables.sql") as fd:
         statements = fd.read()
         for statement in statements.split(";"):
@@ -11,7 +16,13 @@ def create_agregate_tables():
 
 
 def agregate_dim_station():
-    con = duckdb.connect(database = "data/duckdb/mobility_analysis.duckdb", read_only = False)
+    """
+    Met à jour la table d'agrégation `DIM_STATION` en insérant les données les plus récentes
+    provenant de la table `CONSOLIDATE_STATION`.
+    Cette table contient des informations sur les stations telles que l'adresse, le nom,
+    la capacité, et les coordonnées géographiques.
+    """
+    con = duckdb.connect(database="data/duckdb/mobility_analysis.duckdb", read_only=False)
     
     sql_statement = """
     INSERT OR REPLACE INTO DIM_STATION
@@ -32,7 +43,13 @@ def agregate_dim_station():
 
 
 def agregate_dim_city():
-    con = duckdb.connect(database = "data/duckdb/mobility_analysis.duckdb", read_only = False)
+    """
+    Met à jour la table d'agrégation `DIM_CITY` en insérant les données les plus récentes
+    provenant de la table `CONSOLIDATE_CITY`.
+    Cette table contient des informations sur les villes, comme leur ID,
+    leur nom et leur population.
+    """
+    con = duckdb.connect(database="data/duckdb/mobility_analysis.duckdb", read_only=False)
     
     sql_statement = """
     INSERT OR REPLACE INTO DIM_CITY
@@ -48,7 +65,13 @@ def agregate_dim_city():
 
 
 def agregate_fact_station_statements():
-    con = duckdb.connect(database = "data/duckdb/mobility_analysis.duckdb", read_only = False)
+    """
+    Met à jour la table d'agrégation `FACT_STATION_STATEMENT` en insérant les données les plus récentes
+    des déclarations des stations. Ces données incluent le nombre de vélos disponibles,
+    les bornes disponibles, la date de dernière mise à jour, et les relations entre
+    les stations et les villes.
+    """
+    con = duckdb.connect(database="data/duckdb/mobility_analysis.duckdb", read_only=False)
 
     sql_statement = """
     INSERT OR REPLACE INTO FACT_STATION_STATEMENT
