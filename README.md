@@ -183,11 +183,11 @@ dbutils.fs.mount(
   extra_configs = configs
 )
 
-'''
+
 
 - **Pour la consolidation des données de stations voici le contenu du notebook Bronze_to_silver_station**
 
-## Pour la consolidation des données de stations, voici le contenu du notebook `Bronze_to_silver_station`
+## Pour la consolidation des données de stations, voici le contenu du notebook `Bronze_to_silver_station
 
 ```python
 from pyspark.sql import SparkSession
@@ -260,7 +260,7 @@ except Exception as e:
     print(f"Error processing station data: {e}")
     raise
 
-'''
+
 
 ### Explication
 
@@ -349,7 +349,6 @@ except Exception as e:
 # Display the processed data for verification
 display(availability_data)
 
-'''
 
 ### Explication
 
