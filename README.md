@@ -296,7 +296,7 @@ Ce code Python utilise **PySpark** pour effectuer les étapes suivantes :
 - Les données écrites dans Silver sont rechargées pour vérifier leur intégrité.
 
 
-#### Pour la consolidation des données de stations voici le contenu du notebook Bronze_to_silver_availability
+#### Pour la consolidation des données d'availability  voici le contenu du notebook Bronze_to_silver_availability
 
 ```python
 
@@ -598,3 +598,25 @@ on trouve ça
 
 
 Conclusion 
+
+### 4. Déclenchement des pipelines
+
+Nous avons configuré un **schedule** pour la **pipeline Azure Data Factory** afin qu’elle s’exécute **chaque jour à 21h (9PM)**. Cette pipeline permet de :
+
+- **Récupérer les données du jour** à partir des sources (API, etc.).
+- **Appliquer les transformations nécessaires** pour les nettoyer et les structurer.
+- **Déposer les données transformées dans la couche Gold** du Data Lake.
+
+---
+
+### Pipeline Azure Synapse
+
+- Une fois les données du jour disponibles dans la couche Gold, la **pipeline Azure Synapse** est déclenchée.
+- Cette pipeline récupère les données du dernier jour et les ajoute aux **tables existantes** dans Synapse. Cela garantit :
+  - La conservation d'un **historique complet** des données.
+  - Une préparation optimale des données pour des analyses et visualisations dans Power BI.
+
+---
+
+
+*Pour toute question ou demande d'information complémentaire, n'hésitez pas à nous contacter aux adresses suivantes : enna.mohamed02@gmail.com ou danguirbasma@gmail.com.*
