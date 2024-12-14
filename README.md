@@ -78,46 +78,46 @@ FROM DIM_STATION ds JOIN (
 
 Voici ce que retourne notre code :
 
-### Allons plus loin : Construction du pipeline sur Azure
+# Allons plus loin : Construction du pipeline sur Azure (ETL)
 
-#### Architecture du projet
+## Architecture du projet
 
 ![Architecture du pipeline](images/AzurePipeline.png)
 
-### Services Azure Utilisés
+## Services Azure Utilisés
 
-#### 1. **Azure Data Factory**
+### 1. **Azure Data Factory**
 - **Rôle :** Orchestration et ingestion des données.
 - **Utilisation :**
   - Récupération des données depuis l'API de Paris et leur stockage dans le layer Bronze d'Azure Data Lake.
   - Automatisation quotidienne grâce à un trigger basé sur la date.
 
-#### 2. **Azure Data Lake Storage Gen2**
+### 2. **Azure Data Lake Storage Gen2**
 - **Rôle :** Stockage des données à chaque étape (Bronze, Silver, Gold).
 - **Organisation :**
   - **Bronze :** Données brutes extraites des APIs.
   - **Silver :** Données nettoyées, transformées et organisées (par ville, disponibilité, station).
   - **Gold :** Données enrichies et agrégées, prêtes pour des analyses avancées.
 
-#### 3. **Azure Databricks**
+### 3. **Azure Databricks**
 - **Rôle :** Transformation des données entre les couches (Bronze -> Silver, Silver -> Gold).
 - **Utilisation :**
   - Nettoyage des données.
   - Structuration des données en dossiers logiques.
   - Enrichissement avec des informations supplémentaires comme des horodatages et des formats de données.
 
-#### 4. **Azure Synapse Analytics (optionnel)**
+### 4. **Azure Synapse Analytics (optionnel)**
 - **Rôle :** Analyse SQL sur les données enrichies.
 - **Utilisation :** Permet des requêtes rapides sur les données Gold.
 
-#### 5. **Azure Key Vault**
+### 5. **Azure Key Vault**
 - **Rôle :** Sécurisation des secrets et credentials pour accéder aux services et APIs.
 
 ---
 
 ## Étapes Suivies
 
-### 1. **Ingestion des Données**
+### 1. **Ingestion des Données (EXTRACT)**
 - **Action :**
   - Création d'un pipeline dans Azure Data Factory pour appeler l'API de Paris.
   - Sauvegarde des données sous forme de fichiers Parquet dans la couche Bronze d'Azure Data Lake.
@@ -126,7 +126,9 @@ Voici ce que retourne notre code :
 ![Bronze  layer content](images/BronzeContent.png)
 ![Dedans une date , on trouve le parquet file (raw data) ](images/ParquetFile.png)
 
-### 2. Transformation Bronze -> Silver
+### 2. (TRANSFORM)
+
+#### 1. Transformation Bronze to silver
 
 - **Action :**
 
@@ -185,7 +187,7 @@ dbutils.fs.mount(
 ```
 
 
-- **Pour la consolidation des données de stations voici le contenu du notebook Bronze_to_silver_station**
+#### Pour la consolidation des données de stations voici le contenu du notebook Bronze_to_silver_station
 
 ```python
 from pyspark.sql import SparkSession
@@ -260,30 +262,30 @@ except Exception as e:
 ```
 
 
-### Explication
+#### Explication
 
 Ce code Python utilise **PySpark** pour effectuer les étapes suivantes :
 
-#### Initialisation :
+**Initialisation :**
 - Une session Spark est créée pour gérer le traitement des données.
 - Les chemins pour les couches Bronze et Silver sont définis.
 
-####  Chargement des données :
+**Chargement des données :**
 - Les données du jour (par date) sont récupérées depuis la couche Bronze sous forme de fichiers Parquet.
 
-#### Transformation des données :
+**Transformation des données :**
 - Les colonnes sont renommées et transformées pour répondre aux besoins métiers :
   - Exemple : Le champ `is_installed` est encodé en binaire (1 pour "OUI", 0 sinon).
 - Une colonne unique `id` est créée en combinant le code de la ville de Paris avec le code de la station.
 
-#### Écriture dans la couche Silver :
+**Écriture dans la couche Silver :**
 - Les données transformées sont enregistrées sous forme de fichiers Parquet dans la couche Silver, organisées par date.
 
-#### Chargement et vérification :
+**Chargement et vérification :**
 - Les données écrites dans Silver sont rechargées pour vérifier leur intégrité.
 
 
-- **Pour la consolidation des données de stations voici le contenu du notebook Bronze_to_silver_availability**
+#### Pour la consolidation des données de stations voici le contenu du notebook Bronze_to_silver_availability
 
 ```python
 
@@ -348,20 +350,20 @@ except Exception as e:
 display(availability_data)
 ```
 
-### Explication
+#### Explication
 
 Ce code Python utilise **PySpark** pour transformer les données de disponibilité (availability) de la couche Bronze vers la couche Silver. Voici les étapes principales :
 
-#### Initialisation :
+**Initialisation :**
 - Une session Spark est créée pour le traitement des données.
 - Les chemins pour les couches Bronze (`bronze_base_path`) et Silver (`silver_base_path`) sont définis.
 - Le fuseau horaire est configuré pour Paris, et la date actuelle est obtenue pour créer des partitions et nommer les fichiers.
 
-#### Chargement des données :
+**Chargement des données :**
 - Les données du jour sont récupérées depuis la couche Bronze en lisant les fichiers Parquet.
 - Une vérification est effectuée pour s'assurer que les données sont chargées correctement.
 
-#### Transformation des données :
+**Transformation des données :**
 - Ajout d'une colonne `id` unique basée sur le code de la station (`stationcode`), préfixée par `1_`.
 - Renommage des colonnes pour des noms plus explicites :
   - `numdocksavailable` devient `bicycle_docks_available`.
@@ -371,23 +373,24 @@ Ce code Python utilise **PySpark** pour transformer les données de disponibilit
 - Sélection des colonnes pertinentes pour simplifier la structure des données :
   - `id`, `capacity`, `bicycle_docks_available`, `bicycle_available`, `last_statement_date`, et `created_date`.
 
-#### Écriture des données dans la couche Silver :
+**Écriture des données dans la couche Silver :**
 - Les données transformées sont enregistrées dans la couche Silver sous forme de fichiers Parquet.
 - La structure des dossiers dans Silver inclut le répertoire `availability`, avec un fichier nommé selon la date du jour (par exemple, `2024-12-13_availability.parquet`).
 
-#### Vérification :
+**Vérification :**
 - Les données transformées sont affichées dans Databricks pour une vérification manuelle de leur intégrité.
 
 ![Silver Folders](images/SilverFolders.png)
 ![Silver SubFolders](images/SilverSubfolders.png)
 
 
-### 3. **Transformation Silver -> Gold**
+#### 2. **Transformation Silver -> Gold**
+
 - **Action :**
   - Application de transformations supplémentaires dans Databricks pour enrichir les données.
   - Organisation en dossiers Gold prêts pour l'analyse.
 
-## Pour l'aggrégation des données d'availibality , voici le contenu du notebook `Silver_to_gold_Availability`
+#### Pour l'aggrégation des données d'availibality , voici le contenu du notebook `Silver_to_gold_Availability`
 
 ```python
 from datetime import datetime
@@ -455,13 +458,13 @@ except Exception as e:
 display(transformed_df)
 ```
 
-## Explication : Transformation des données de disponibilité (Silver -> Gold)
+#### Explication : Transformation des données de disponibilité (Silver -> Gold)
 
 Ce script Python utilise **PySpark** pour transformer et enrichir les données de disponibilité de la couche Silver vers la couche Gold. Voici les étapes détaillées :
 
 ---
 
-### 1. Initialisation
+**1. Initialisation**
 - Une **session Spark** est créée pour effectuer les transformations nécessaires.
 - Le fuseau horaire est défini pour **Paris**, et la date actuelle est récupérée pour générer des chemins dynamiques basés sur la date.
 - Les chemins pour :
@@ -470,14 +473,14 @@ Ce script Python utilise **PySpark** pour transformer et enrichir les données d
 
 ---
 
-### 2. Chargement des données
+**2. Chargement des données**
 - Les données de disponibilité du jour sont chargées depuis la couche Silver au format **Parquet**.
 - Une gestion des erreurs est implémentée pour garantir que les données sont correctement chargées.
 
 ---
 
-### 3. Transformation des données
-#### a) Ajout de nouvelles colonnes calculées
+**3. Transformation des données**
+- **a) Ajout de nouvelles colonnes calculées**
 1. **`bicycle_usage_rate`** : Calcul du pourcentage d'utilisation des vélos par rapport à la capacité totale :
    \[
    \text{bicycle\_usage\_rate} = \frac{\text{bicycle\_available}}{\text{capacity}} \times 100
@@ -493,7 +496,7 @@ Ce script Python utilise **PySpark** pour transformer et enrichir les données d
      \]
    - Sinon, valeur `0`.
 
-#### b) Identification de la station la plus utilisée
+- **b) Identification de la station la plus utilisée**
 - Une **fenêtre Spark** est utilisée pour trier les stations par leur taux d'utilisation (`bicycle_usage_rate`) en ordre décroissant.
 - Une nouvelle colonne **`most_used_station`** est ajoutée pour marquer la station ayant le taux d'utilisation le plus élevé :
   - `1` pour la station la plus utilisée.
@@ -501,14 +504,14 @@ Ce script Python utilise **PySpark** pour transformer et enrichir les données d
 
 ---
 
-### 4. Écriture dans la couche Gold
+**4. Écriture dans la couche Gold**
 - Les données transformées sont sauvegardées dans la couche Gold au format **Delta** :
   - Mode `overwrite` : Les données existantes pour la date en cours sont écrasées.
   - Option `mergeSchema` : Permet de gérer les éventuelles modifications dans le schéma des données.
 
 ---
 
-### 5. Vérification
+**5. Vérification**
 - Les données transformées sont affichées dans Databricks pour valider :
   - Les calculs (`bicycle_usage_rate`, `dock_availability_rate`).
   - La cohérence des données (`data_consistency_flag`).
@@ -516,7 +519,7 @@ Ce script Python utilise **PySpark** pour transformer et enrichir les données d
 
 ---
 
-### Résultat attendu
+**Résultat attendu**
 Après transformation, la couche Gold contiendra les colonnes suivantes :
 1. **`id`** : Identifiant unique de la station.
 2. **`capacity`** : Capacité totale de la station.
@@ -532,40 +535,45 @@ Après transformation, la couche Gold contiendra les colonnes suivantes :
 ![Gold Container](images/GoldContainer.png)
 ![The content of every folder in the container](images/SubfoldersGold.png)
 
+### 3. (LOAD) Création des tables sur Azure Synapse
 
+![Pipeline pour la création des tables sur synapse](images/LoadSynapsePipeline.png)
 
-### 4. **Stockage et Historisation**
-- **Action :**
-  - Historisation des données à chaque couche (Bronze, Silver, Gold) pour permettre des analyses rétrospectives.
-  - Vérification des partitions journalières.
-
----
-
-## Résultat Final
-
-- Un pipeline automatisé, scalable et sécurisé qui permet de collecter, nettoyer, transformer et enrichir les données.
-- Les données sont organisées en plusieurs couches logiques pour répondre aux besoins métiers et faciliter les analyses.
+#### Objectif
+Après avoir effectué les étapes d'extraction et de transformation des données, nous passons maintenant à la phase de **Load**, où les données de la couche **Gold** sont utilisées pour créer les **tables de dimension** et les **tables de fait** dans **Azure Synapse Analytics**. Ces tables seront ensuite connectées à Power BI pour permettre des analyses et des visualisations interactives.
 
 ---
 
-## Recommandations pour Captures d'Écran
-
-1. **Pipeline Azure Data Factory :**
-   - Capture du pipeline complet avec les étapes de copie et transformation.
-   - Capture des paramètres de l'API dans le pipeline.
-
-2. **Contenu des Layers dans Azure Data Lake :**
-   - Capture du contenu du dossier `bronze` (avec les fichiers partitionnés par date).
-   - Capture des dossiers `silver` (`availability`, `city`, `station`).
-   - Capture du dossier `gold` organisé.
-
-3. **Notebooks Databricks :**
-   - Capture des cellules importantes montrant les transformations Bronze -> Silver et Silver -> Gold.
-
-4. **Azure Synapse Analytics (optionnel) :**
-   - Capture des tables ou requêtes utilisées pour les analyses si applicable.
+#### Déclenchement de la pipeline sur Synapse
+Dès que les données sont disponibles dans la couche **Gold**, une **pipeline Azure Synapse** est déclenchée automatiquement pour gérer la création ou la modification des **vues nécessaires**. 
 
 ---
 
-Ajoutez les captures recommandées et dites-moi si vous souhaitez que je développe davantage certains points ou clarifie certaines parties !
+#### Explication des activités dans la pipeline
 
+1. **Récupération des noms des tables**
+   - La première activité, `Get Metadata`, a pour but de récupérer les noms des sous-dossiers dans chaque dossier Gold (disponibilité, stations, villes). Ces sous-dossiers représentent les **noms des tables** que nous devons créer dans Synapse :
+     - **`availability`**
+     - **`station`**
+     - **`city`**
+   - Ces noms sont dérivés directement de la structure de la couche Gold, où chaque dossier par date contient ces trois sous-dossiers.
+
+2. **Application d'une procédure stockée pour chaque table**
+   - Une fois les noms des tables récupérés, une boucle `ForEach` est utilisée pour parcourir chaque table identifiée (subfolder).
+   - Pour chaque table, une **stored procedure** est appelée pour créer ou modifier la table correspondante dans Synapse :
+     - **Dimension Tables** : Tables décrivant les entités (stations, villes).
+     - **Fact Tables** : Tables contenant les mesures liées à la disponibilité des vélos.
+   - Cette approche permet une automatisation complète et garantit que les tables sont toujours synchronisées avec les données disponibles dans Gold.
+
+---
+
+![Sur Synapse on trouve ici les tables creer](images/LoadSynapsePipeline.png)
+
+- **Si on run cette query , on trouve**
+
+query 
+
+on trouve ça 
+
+
+Conclusion 
