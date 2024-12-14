@@ -1,6 +1,5 @@
 import os
 from datetime import datetime
-
 import requests
 
 # Ingestion : Paris
@@ -80,8 +79,8 @@ def get_all_communes_data():
     if response.status_code == 200:
         print("All communes data retrieved successfully.")
         today_date = datetime.now().strftime("%Y-%m-%d")
+        os.makedirs(f"data/raw_data/{today_date}", exist_ok=True)  
         file_path = f"data/raw_data/{today_date}/all_communes_data.json"
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "w") as file:
             file.write(response.text)
         print(f"Data saved in {file_path}")

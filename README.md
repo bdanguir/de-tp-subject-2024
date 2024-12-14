@@ -80,3 +80,7 @@ Voici ce que retourne notre code :
 
 ### Allons plus loin : Construction du pipeline sur Azure
 
+#### Architecture du projet
+
+![Architecture du pipeline](images/AzurePipeline.png)
+

@@ -9,6 +9,7 @@ PARIS_CITY_CODE = 1
 NANTES_CITY_CODE = 2
 TOULOUSE_CITY_CODE = 3
 
+
 def create_consolidate_tables():
     """
     Cette fonction établit une connexion à une base de données DuckDB, lit un fichier contenant des requêtes SQL 
@@ -23,6 +24,7 @@ def create_consolidate_tables():
 
 
 #======================================================================================================================================================
+
 
 def consolidate_station_data(city):
     """
@@ -142,7 +144,7 @@ def consolidate_city_data(city):
     con = duckdb.connect(database="data/duckdb/mobility_analysis.duckdb", read_only=False)
     
     # Charger toutes les données des communes pour la correspondance des populations
-    with open("data/raw_data/2024-11-27/all_communes_data.json") as fd:
+    with open(f"data/raw_data/{today_date}/all_communes_data.json") as fd:
         all_communes_data = json.load(fd)
     communes_df = pd.json_normalize(all_communes_data)
     
