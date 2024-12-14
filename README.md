@@ -134,6 +134,9 @@ Voici ce que retourne notre code :
 - Organisation des données dans trois sous-dossiers : `availability`, `city`, `station`.
 - Chaque sous-dossier est partitionné par date pour conserver l'historique.
 
+![Interface Databricks contenant nos notebooks](images/Databricks.png)
+
+
 - **Mounting Azure Data Lake Storage dans Databricks**
 
 Avant de commencer les transformations, il est nécessaire de **monter** les conteneurs d'Azure Data Lake Storage (ADLS) dans Databricks. Cela permet un accès facile aux données directement via les points de montage `/mnt/bronze`, `/mnt/silver`, et `/mnt/gold`.
@@ -180,6 +183,202 @@ dbutils.fs.mount(
   extra_configs = configs
 )
 
+'''
+
+- **Pour la consolidation des données de stations voici le contenu du notebook Bronze_to_silver_station**
+
+```python
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, lit, to_date, when, concat
+from datetime import datetime
+
+# Initialize Spark session
+spark = SparkSession.builder.appName("StationDataTransformation").getOrCreate()
+
+# Define paths and today's date
+bronze_base_path = "/mnt/bronze"
+silver_base_path = "/mnt/silver/stationdata"
+# Set the timezone to Paris
+paris_timezone = pytz.timezone("Europe/Paris")
+
+# Get the current date and time in the Paris timezone
+paris_time = datetime.now(paris_timezone)
+
+# Format the date
+today_date = paris_time.strftime("%Y-%m-%d")
+# Define paths for today
+today_bronze_folder = f"{bronze_base_path}/{today_date}"
+silver_output_path = f"{silver_base_path}/{today_date}_station.parquet"
+
+# Define Paris city code
+PARIS_CITY_CODE = "1"
+
+try:
+    # Load today's data from the Bronze layer
+    station_data = spark.read.parquet(today_bronze_folder)
+    print(f"Successfully loaded data from {today_bronze_folder}")
+
+    # Select relevant columns and perform transformations
+    transformed_data = station_data.select(
+        col("stationcode").alias("code"),
+        col("name").alias("name"),
+        col("nom_arrondissement_communes").alias("city_name"),
+        col("code_insee_commune").alias("city_code"),
+        col("capacity").alias("capacity"),
+        to_date(col("duedate")).alias("updated_date"),  # Rename duedate to updated_date
+        lit(today_date).alias("created_date"),  # Add today's date as created_date
+        when(col("is_installed") == "OUI", 1).otherwise(0).alias("status"),  # Encode status as 1/0
+        when(col("is_renting") == "OUI", 1).otherwise(0).alias("is_renting"),  # Encode is_renting as 1/0
+        when(col("is_returning") == "OUI", 1).otherwise(0).alias("is_returning"),  # Encode is_returning as 1/0
+    ).withColumn(
+        "id", concat(lit(PARIS_CITY_CODE), lit("-"), col("code"))  # Add unique ID combining Paris city code and station code
+    )
+
+    # Reorder columns to move 'id' to the beginning
+    reordered_columns = [
+        "id", "code", "name", "city_name", "city_code", 
+         "capacity", "updated_date", "created_date", "status", "is_renting", "is_returning"
+    ]
+    transformed_data = transformed_data.select(*reordered_columns)
+
+    # Write the transformed data to the Silver layer
+    transformed_data.write.mode("overwrite").parquet(silver_output_path)
+    print(f"Data successfully saved to {silver_output_path}")
+
+    # Load and display the transformed data from Silver
+    print("Loading data from Silver layer for verification...")
+    silver_data = spark.read.parquet(silver_output_path)
+    print(f"Successfully loaded data from {silver_output_path}")
+    
+    # Display the data
+    display(silver_data)
+
+except Exception as e:
+    print(f"Error processing station data: {e}")
+    raise
+'''
+
+### Explication
+
+Ce code Python utilise **PySpark** pour effectuer les étapes suivantes :
+
+#### Initialisation :
+- Une session Spark est créée pour gérer le traitement des données.
+- Les chemins pour les couches Bronze et Silver sont définis.
+
+####  Chargement des données :
+- Les données du jour (par date) sont récupérées depuis la couche Bronze sous forme de fichiers Parquet.
+
+#### Transformation des données :
+- Les colonnes sont renommées et transformées pour répondre aux besoins métiers :
+  - Exemple : Le champ `is_installed` est encodé en binaire (1 pour "OUI", 0 sinon).
+- Une colonne unique `id` est créée en combinant le code de la ville de Paris avec le code de la station.
+
+#### Écriture dans la couche Silver :
+- Les données transformées sont enregistrées sous forme de fichiers Parquet dans la couche Silver, organisées par date.
+
+#### Chargement et vérification :
+- Les données écrites dans Silver sont rechargées pour vérifier leur intégrité.
+
+
+- **Pour la consolidation des données de stations voici le contenu du notebook Bronze_to_silver_availability**
+
+'''python
+
+from datetime import datetime
+import os
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, lit, to_date, concat, round
+import pytz
+
+# Initialize Spark session
+spark = SparkSession.builder.appName("ConsolidateAvailabilityData").getOrCreate()
+
+# Define paths
+bronze_base_path = "/mnt/bronze"
+silver_base_path = "/mnt/silver"
+# Set the timezone to Paris
+paris_timezone = pytz.timezone("Europe/Paris")
+
+# Get the current date and time in the Paris timezone
+paris_time = datetime.now(paris_timezone)
+
+# Format the date
+today_date = paris_time.strftime("%Y-%m-%d")
+bronze_folder_path = f"{bronze_base_path}/{today_date}"
+silver_availability_path = f"{silver_base_path}/availability/{today_date}_availability.parquet"
+
+# Load today's data from the bronze layer
+try:
+    availability_data = spark.read.parquet(bronze_folder_path)
+    print(f"Successfully loaded data from: {bronze_folder_path}")
+except Exception as e:
+    print(f"Error loading data from: {bronze_folder_path}")
+    raise e
+
+# Process and transform the data
+availability_data = (
+    availability_data
+    .withColumn("id", concat(lit("1_"), col("stationcode")))  # Add unique ID as "1_Stationcode"
+    .withColumnRenamed("numdocksavailable", "bicycle_docks_available")
+    .withColumnRenamed("numbikesavailable", "bicycle_available")
+    .withColumn("last_statement_date", to_date(col("duedate")))  # Convert duedate to a proper date
+    .withColumn("created_date", lit(today_date))  # Add the created_date column with today's date
+    .select(
+        "id",
+        "capacity",
+        "bicycle_docks_available",
+        "bicycle_available",
+        "last_statement_date",
+        "created_date"
+    )  # Select relevant columns
+)
+
+# Write the transformed data to the silver layer
+try:
+    availability_data.write.mode("overwrite").parquet(silver_availability_path)
+    print(f"Data successfully written to: {silver_availability_path}")
+except Exception as e:
+    print(f"Error writing data to: {silver_availability_path}")
+    raise e
+
+# Display the processed data for verification
+display(availability_data)
+
+'''
+
+### Explication
+
+Ce code Python utilise **PySpark** pour transformer les données de disponibilité (availability) de la couche Bronze vers la couche Silver. Voici les étapes principales :
+
+#### Initialisation :
+- Une session Spark est créée pour le traitement des données.
+- Les chemins pour les couches Bronze (`bronze_base_path`) et Silver (`silver_base_path`) sont définis.
+- Le fuseau horaire est configuré pour Paris, et la date actuelle est obtenue pour créer des partitions et nommer les fichiers.
+
+#### Chargement des données :
+- Les données du jour sont récupérées depuis la couche Bronze en lisant les fichiers Parquet.
+- Une vérification est effectuée pour s'assurer que les données sont chargées correctement.
+
+#### Transformation des données :
+- Ajout d'une colonne `id` unique basée sur le code de la station (`stationcode`), préfixée par `1_`.
+- Renommage des colonnes pour des noms plus explicites :
+  - `numdocksavailable` devient `bicycle_docks_available`.
+  - `numbikesavailable` devient `bicycle_available`.
+- Conversion de la colonne `duedate` en un format de date approprié (`last_statement_date`).
+- Ajout d'une colonne `created_date` contenant la date du jour.
+- Sélection des colonnes pertinentes pour simplifier la structure des données :
+  - `id`, `capacity`, `bicycle_docks_available`, `bicycle_available`, `last_statement_date`, et `created_date`.
+
+#### Écriture des données dans la couche Silver :
+- Les données transformées sont enregistrées dans la couche Silver sous forme de fichiers Parquet.
+- La structure des dossiers dans Silver inclut le répertoire `availability`, avec un fichier nommé selon la date du jour (par exemple, `2024-12-13_availability.parquet`).
+
+#### Vérification :
+- Les données transformées sont affichées dans Databricks pour une vérification manuelle de leur intégrité.
+
+![Silver Folders](images/SilverFolders.png)
+![Silver SubFolders](images/SilverSubfolders.png)
 
 
 ### 3. **Transformation Silver -> Gold**
