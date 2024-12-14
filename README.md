@@ -84,3 +84,95 @@ Voici ce que retourne notre code :
 
 ![Architecture du pipeline](images/AzurePipeline.png)
 
+### Services Azure Utilisés
+
+#### 1. **Azure Data Factory**
+- **Rôle :** Orchestration et ingestion des données.
+- **Utilisation :**
+  - Récupération des données depuis l'API de Paris et leur stockage dans le layer Bronze d'Azure Data Lake.
+  - Automatisation quotidienne grâce à un trigger basé sur la date.
+
+#### 2. **Azure Data Lake Storage Gen2**
+- **Rôle :** Stockage des données à chaque étape (Bronze, Silver, Gold).
+- **Organisation :**
+  - **Bronze :** Données brutes extraites des APIs.
+  - **Silver :** Données nettoyées, transformées et organisées (par ville, disponibilité, station).
+  - **Gold :** Données enrichies et agrégées, prêtes pour des analyses avancées.
+
+#### 3. **Azure Databricks**
+- **Rôle :** Transformation des données entre les couches (Bronze -> Silver, Silver -> Gold).
+- **Utilisation :**
+  - Nettoyage des données.
+  - Structuration des données en dossiers logiques.
+  - Enrichissement avec des informations supplémentaires comme des horodatages et des formats de données.
+
+#### 4. **Azure Synapse Analytics (optionnel)**
+- **Rôle :** Analyse SQL sur les données enrichies.
+- **Utilisation :** Permet des requêtes rapides sur les données Gold.
+
+#### 5. **Azure Key Vault**
+- **Rôle :** Sécurisation des secrets et credentials pour accéder aux services et APIs.
+
+---
+
+## Étapes Suivies
+
+### 1. **Ingestion des Données**
+- **Action :**
+  - Création d'un pipeline dans Azure Data Factory pour appeler l'API de Paris.
+  - Sauvegarde des données sous forme de fichiers Parquet dans la couche Bronze d'Azure Data Lake.
+
+![Azure Data factory Pipeline , la premiere activité consiste en l'ingestion](images/AzureDFPipeline.png)
+![Bronze  layer content](images/BronzeContent.png)
+
+### 2. **Transformation Bronze -> Silver**
+- **Action :**
+  - Utilisation de notebooks Databricks pour nettoyer et structurer les données.
+  - Organisation des données dans trois sous-dossiers : `availability`, `city`, `station`.
+  - Chaque sous-dossier est partitionné par date pour conserver l'historique.
+- **Recommandation de capture d'écran :**
+  - Notebook Databricks montrant les étapes de transformation.
+  - Vue du dossier `silver` dans Azure Data Lake.
+
+### 3. **Transformation Silver -> Gold**
+- **Action :**
+  - Application de transformations supplémentaires dans Databricks pour enrichir les données.
+  - Organisation en dossiers Gold prêts pour l'analyse.
+- **Recommandation de capture d'écran :**
+  - Vue du dossier `gold` montrant les répertoires enrichis.
+
+### 4. **Stockage et Historisation**
+- **Action :**
+  - Historisation des données à chaque couche (Bronze, Silver, Gold) pour permettre des analyses rétrospectives.
+  - Vérification des partitions journalières.
+
+---
+
+## Résultat Final
+
+- Un pipeline automatisé, scalable et sécurisé qui permet de collecter, nettoyer, transformer et enrichir les données.
+- Les données sont organisées en plusieurs couches logiques pour répondre aux besoins métiers et faciliter les analyses.
+
+---
+
+## Recommandations pour Captures d'Écran
+
+1. **Pipeline Azure Data Factory :**
+   - Capture du pipeline complet avec les étapes de copie et transformation.
+   - Capture des paramètres de l'API dans le pipeline.
+
+2. **Contenu des Layers dans Azure Data Lake :**
+   - Capture du contenu du dossier `bronze` (avec les fichiers partitionnés par date).
+   - Capture des dossiers `silver` (`availability`, `city`, `station`).
+   - Capture du dossier `gold` organisé.
+
+3. **Notebooks Databricks :**
+   - Capture des cellules importantes montrant les transformations Bronze -> Silver et Silver -> Gold.
+
+4. **Azure Synapse Analytics (optionnel) :**
+   - Capture des tables ou requêtes utilisées pour les analyses si applicable.
+
+---
+
+Ajoutez les captures recommandées et dites-moi si vous souhaitez que je développe davantage certains points ou clarifie certaines parties !
+
