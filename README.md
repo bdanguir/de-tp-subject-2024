@@ -187,8 +187,6 @@ dbutils.fs.mount(
 
 - **Pour la consolidation des données de stations voici le contenu du notebook Bronze_to_silver_station**
 
-## Pour la consolidation des données de stations, voici le contenu du notebook `Bronze_to_silver_station
-
 ```python
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, lit, to_date, when, concat
@@ -388,8 +386,153 @@ Ce code Python utilise **PySpark** pour transformer les données de disponibilit
 - **Action :**
   - Application de transformations supplémentaires dans Databricks pour enrichir les données.
   - Organisation en dossiers Gold prêts pour l'analyse.
-- **Recommandation de capture d'écran :**
-  - Vue du dossier `gold` montrant les répertoires enrichis.
+
+## Pour l'aggrégation des données d'availibality , voici le contenu du notebook `Silver_to_gold_Availability`
+
+```python
+from datetime import datetime
+import pytz
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, lit, round, desc, row_number, when
+from pyspark.sql.window import Window
+
+# Initialize Spark session
+spark = SparkSession.builder.appName("AvailabilityDataTransform").getOrCreate()
+
+# Define paths
+silver_base_path = "/mnt/silver"
+gold_base_path = "/mnt/gold"
+
+# Set the timezone to Paris
+paris_timezone = pytz.timezone("Europe/Paris")
+
+# Get the current date in Paris timezone
+paris_time = datetime.now(paris_timezone)
+today_date = paris_time.strftime("%Y-%m-%d")
+
+# Define input and output paths
+silver_availability_path = f"{silver_base_path}/availability/{today_date}_availability.parquet"
+gold_availability_path = f"{gold_base_path}/{today_date}/availability"
+
+# Load the availability data from the silver layer
+try:
+    availability_df = spark.read.parquet(silver_availability_path)
+    print(f"Successfully loaded data from: {silver_availability_path}")
+except Exception as e:
+    print(f"Error loading data from: {silver_availability_path}")
+    raise e
+
+# Transformation: Add new columns
+transformed_df = (
+    availability_df
+    .withColumn("bicycle_usage_rate", 
+                round((col("bicycle_available") / col("capacity")) * 100, 2))  # % of bikes available
+    .withColumn("dock_availability_rate", 
+                round((col("bicycle_docks_available") / col("capacity")) * 100, 2))  # % of docks available
+    .withColumn("data_consistency_flag", 
+                when(col("capacity") == col("bicycle_docks_available") + col("bicycle_available"), 1)
+                .otherwise(0))  # Flag for consistent data (1: equal, 0: not equal)
+)
+
+# Find the most-used station (by usage rate) and flag it
+window_spec = Window.orderBy(desc("bicycle_usage_rate"))
+transformed_df = (
+    transformed_df
+    .withColumn("rank", row_number().over(window_spec))
+    .withColumn("most_used_station", when(col("rank") == 1, 1).otherwise(0))  # 1 for most-used station, 0 otherwise
+    .drop("rank")  # Drop the rank column
+)
+
+# Write the transformed data to the gold layer in Delta format
+try:
+    transformed_df.write.format("delta").mode("overwrite").option("mergeSchema", "true").save(gold_availability_path)
+    print(f"Data successfully written to: {gold_availability_path}")
+except Exception as e:
+    print(f"Error writing data to: {gold_availability_path}")
+    raise e
+
+# Display the transformed data
+display(transformed_df)
+```
+
+## Explication : Transformation des données de disponibilité (Silver -> Gold)
+
+Ce script Python utilise **PySpark** pour transformer et enrichir les données de disponibilité de la couche Silver vers la couche Gold. Voici les étapes détaillées :
+
+---
+
+### 1. Initialisation
+- Une **session Spark** est créée pour effectuer les transformations nécessaires.
+- Le fuseau horaire est défini pour **Paris**, et la date actuelle est récupérée pour générer des chemins dynamiques basés sur la date.
+- Les chemins pour :
+  - Charger les données depuis la couche Silver : `/mnt/silver/availability/{date}_availability.parquet`.
+  - Sauvegarder les données transformées dans la couche Gold : `/mnt/gold/{date}/availability`.
+
+---
+
+### 2. Chargement des données
+- Les données de disponibilité du jour sont chargées depuis la couche Silver au format **Parquet**.
+- Une gestion des erreurs est implémentée pour garantir que les données sont correctement chargées.
+
+---
+
+### 3. Transformation des données
+#### a) Ajout de nouvelles colonnes calculées
+1. **`bicycle_usage_rate`** : Calcul du pourcentage d'utilisation des vélos par rapport à la capacité totale :
+   \[
+   \text{bicycle\_usage\_rate} = \frac{\text{bicycle\_available}}{\text{capacity}} \times 100
+   \]
+2. **`dock_availability_rate`** : Calcul du pourcentage de disponibilité des docks par rapport à la capacité totale :
+   \[
+   \text{dock\_availability\_rate} = \frac{\text{bicycle\_docks\_available}}{\text{capacity}} \times 100
+   \]
+3. **`data_consistency_flag`** : Indicateur binaire pour vérifier la cohérence des données :
+   - Valeur `1` si :
+     \[
+     \text{capacity} = \text{bicycle\_available} + \text{bicycle\_docks\_available}
+     \]
+   - Sinon, valeur `0`.
+
+#### b) Identification de la station la plus utilisée
+- Une **fenêtre Spark** est utilisée pour trier les stations par leur taux d'utilisation (`bicycle_usage_rate`) en ordre décroissant.
+- Une nouvelle colonne **`most_used_station`** est ajoutée pour marquer la station ayant le taux d'utilisation le plus élevé :
+  - `1` pour la station la plus utilisée.
+  - `0` pour les autres stations.
+
+---
+
+### 4. Écriture dans la couche Gold
+- Les données transformées sont sauvegardées dans la couche Gold au format **Delta** :
+  - Mode `overwrite` : Les données existantes pour la date en cours sont écrasées.
+  - Option `mergeSchema` : Permet de gérer les éventuelles modifications dans le schéma des données.
+
+---
+
+### 5. Vérification
+- Les données transformées sont affichées dans Databricks pour valider :
+  - Les calculs (`bicycle_usage_rate`, `dock_availability_rate`).
+  - La cohérence des données (`data_consistency_flag`).
+  - L'indicateur de la station la plus utilisée (`most_used_station`).
+
+---
+
+### Résultat attendu
+Après transformation, la couche Gold contiendra les colonnes suivantes :
+1. **`id`** : Identifiant unique de la station.
+2. **`capacity`** : Capacité totale de la station.
+3. **`bicycle_docks_available`** : Nombre de docks disponibles.
+4. **`bicycle_available`** : Nombre de vélos disponibles.
+5. **`bicycle_usage_rate`** : Taux d'utilisation des vélos (en pourcentage).
+6. **`dock_availability_rate`** : Taux de disponibilité des docks (en pourcentage).
+7. **`data_consistency_flag`** : Indicateur de cohérence des données (`1` ou `0`).
+8. **`most_used_station`** : Indicateur de la station la plus utilisée (`1` ou `0`).
+
+---
+
+![Gold Container](images/GoldContainer.png)
+![The content of every folder in the container](images/SubfoldersGold.png)
+
+
 
 ### 4. **Stockage et Historisation**
 - **Action :**
