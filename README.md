@@ -122,7 +122,6 @@ Voici ce que retourne notre code :
   - Création d'un pipeline dans Azure Data Factory pour appeler l'API de Paris.
   - Sauvegarde des données sous forme de fichiers Parquet dans la couche Bronze d'Azure Data Lake.
 
-
 **Azure Data factory Pipeline , la premiere activité consiste en l'ingestion**
 
 ![Azure Data factory Pipeline , la premiere activité consiste en l'ingestion](images/AzureDFPipeline.png)
@@ -142,9 +141,11 @@ Voici ce que retourne notre code :
 
 - **Action :**
 
-- Utilisation de notebooks Databricks pour nettoyer et structurer les données.
-- Organisation des données dans trois sous-dossiers : `availability`, `city`, `station`.
-- Chaque sous-dossier est partitionné par date pour conserver l'historique.
+    - Utilisation de notebooks Databricks pour nettoyer et structurer les données.
+    - Organisation des données dans trois sous-dossiers : `availability`, `city`, `station`.
+    - Chaque sous-dossier est partitionné par date pour conserver l'historique.
+
+**Interface Databricks contenant nos notebooks**
 
 ![Interface Databricks contenant nos notebooks](images/Databricks.png)
 
@@ -390,7 +391,12 @@ Ce code Python utilise **PySpark** pour transformer les données de disponibilit
 **Vérification :**
 - Les données transformées sont affichées dans Databricks pour une vérification manuelle de leur intégrité.
 
+**Silver Folders**
+
 ![Silver Folders](images/SilverFolders.png)
+
+**Silver SubFolders**
+
 ![Silver SubFolders](images/SilverSubfolders.png)
 
 
@@ -542,7 +548,12 @@ Après transformation, la couche Gold contiendra les colonnes suivantes :
 
 ---
 
+**Gold Container**
+
 ![Gold Container](images/GoldContainer.png)
+
+**The content of every folder in the container**
+
 ![The content of every folder in the container](images/SubfoldersGold.png)
 
 ### 3. (LOAD) Création des tables sur Azure Synapse
