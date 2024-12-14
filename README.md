@@ -187,10 +187,13 @@ dbutils.fs.mount(
 
 - **Pour la consolidation des données de stations voici le contenu du notebook Bronze_to_silver_station**
 
+## Pour la consolidation des données de stations, voici le contenu du notebook `Bronze_to_silver_station`
+
 ```python
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, lit, to_date, when, concat
 from datetime import datetime
+import pytz
 
 # Initialize Spark session
 spark = SparkSession.builder.appName("StationDataTransformation").getOrCreate()
@@ -237,7 +240,7 @@ try:
     # Reorder columns to move 'id' to the beginning
     reordered_columns = [
         "id", "code", "name", "city_name", "city_code", 
-         "capacity", "updated_date", "created_date", "status", "is_renting", "is_returning"
+        "capacity", "updated_date", "created_date", "status", "is_renting", "is_returning"
     ]
     transformed_data = transformed_data.select(*reordered_columns)
 
