@@ -124,15 +124,63 @@ Voici ce que retourne notre code :
 
 ![Azure Data factory Pipeline , la premiere activité consiste en l'ingestion](images/AzureDFPipeline.png)
 ![Bronze  layer content](images/BronzeContent.png)
+![Dedans une date , on trouve le parquet file (raw data) ](images/ParquetFile.png)
 
-### 2. **Transformation Bronze -> Silver**
+### 2. Transformation Bronze -> Silver
+
 - **Action :**
-  - Utilisation de notebooks Databricks pour nettoyer et structurer les données.
-  - Organisation des données dans trois sous-dossiers : `availability`, `city`, `station`.
-  - Chaque sous-dossier est partitionné par date pour conserver l'historique.
-- **Recommandation de capture d'écran :**
-  - Notebook Databricks montrant les étapes de transformation.
-  - Vue du dossier `silver` dans Azure Data Lake.
+
+- Utilisation de notebooks Databricks pour nettoyer et structurer les données.
+- Organisation des données dans trois sous-dossiers : `availability`, `city`, `station`.
+- Chaque sous-dossier est partitionné par date pour conserver l'historique.
+
+- **Mounting Azure Data Lake Storage dans Databricks**
+
+Avant de commencer les transformations, il est nécessaire de **monter** les conteneurs d'Azure Data Lake Storage (ADLS) dans Databricks. Cela permet un accès facile aux données directement via les points de montage `/mnt/bronze`, `/mnt/silver`, et `/mnt/gold`.
+
+- **Qu'est-ce que le mounting ?**
+
+Monter un conteneur ADLS signifie créer un lien entre Databricks et les conteneurs de stockage Azure. Cela facilite la lecture et l'écriture des fichiers directement dans ADLS en utilisant des chemins simplifiés.
+
+- **À noter :**
+
+- Cette opération est effectuée **une seule fois** lors de la configuration initiale.
+- Une fois montés, les conteneurs restent accessibles pour tous les notebooks Databricks.
+
+- **Code utilisé pour le mounting :**
+
+```python
+# Configuration pour se connecter à Azure Data Lake
+configs = {
+  "fs.azure.account.auth.type": "OAuth",
+  "fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+  "fs.azure.account.oauth2.client.id": "32ca1c75-31d6-4a94-bad6-f0de42f8ee02",  # Application (client) ID
+  "fs.azure.account.oauth2.client.secret": ".oS8Q~zYjTHv~oN5Hs2mMTy1hNNbSYsjkY4Pca83",  # Client secret
+  "fs.azure.account.oauth2.client.endpoint": "https://login.microsoftonline.com/d40d5b6c-caf9-4d8f-8bf5-6e5da3f9fb5a/oauth2/token"  # Directory (tenant) ID
+}
+
+# Monter le conteneur "bronze"
+dbutils.fs.mount(
+  source = "abfss://bronze@mystorageaccount2312.dfs.core.windows.net/",
+  mount_point = "/mnt/bronze",
+  extra_configs = configs
+)
+
+# Monter le conteneur "silver"
+dbutils.fs.mount(
+  source = "abfss://silver@mystorageaccount2312.dfs.core.windows.net/",
+  mount_point = "/mnt/silver",
+  extra_configs = configs
+)
+
+# Monter le conteneur "gold"
+dbutils.fs.mount(
+  source = "abfss://gold@mystorageaccount2312.dfs.core.windows.net/",
+  mount_point = "/mnt/gold",
+  extra_configs = configs
+)
+
+
 
 ### 3. **Transformation Silver -> Gold**
 - **Action :**
