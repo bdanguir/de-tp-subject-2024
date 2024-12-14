@@ -122,9 +122,19 @@ Voici ce que retourne notre code :
   - Création d'un pipeline dans Azure Data Factory pour appeler l'API de Paris.
   - Sauvegarde des données sous forme de fichiers Parquet dans la couche Bronze d'Azure Data Lake.
 
+
+**Azure Data factory Pipeline , la premiere activité consiste en l'ingestion**
+
 ![Azure Data factory Pipeline , la premiere activité consiste en l'ingestion](images/AzureDFPipeline.png)
+
+**Bronze  layer content**
+
 ![Bronze  layer content](images/BronzeContent.png)
+
+**Dedans une date , on trouve le parquet file (raw data)**
+
 ![Dedans une date , on trouve le parquet file (raw data) ](images/ParquetFile.png)
+
 
 ### 2. (TRANSFORM)
 
