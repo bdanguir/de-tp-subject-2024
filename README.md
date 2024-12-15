@@ -588,16 +588,15 @@ Dès que les données sont disponibles dans la couche **Gold**, une **pipeline A
 
 ---
 
-![Sur Synapse on trouve ici les tables creer](images/LoadSynapsePipeline.png)
+- **Une fois la pipeline est executé,on trouve nos views dans notre sql database sur synapse**
 
-- **Si on run cette query , on trouve**
-
-query 
-
-on trouve ça 
+![](images/Views.png)
 
 
-Conclusion 
+- **Voici le résultat d'une simple query sur Synapse**
+
+![](images/QueryResult.png)
+
 
 ### 4. Déclenchement des pipelines
 
@@ -618,5 +617,7 @@ Nous avons configuré un **schedule** pour la **pipeline Azure Data Factory** af
 
 ---
 
+## Nous n'avons pas pu visualiser les données  
+L'instance Power BI n'était pas accessible avec le compte utilisé pour travailler sur Azure, ce qui nous a empêchés de visualiser les données.
 
 *Pour toute question ou demande d'information complémentaire, n'hésitez pas à nous contacter aux adresses suivantes : enna.mohamed02@gmail.com ou danguirbasma@gmail.com.*
