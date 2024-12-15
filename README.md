@@ -37,12 +37,12 @@ Voici comment cela a été fait :
 
 1- **Requête SQL dynamique** : Nous avons utilisé une requête SQL pour chercher le id (code INSEE) correspondant au nom de la ville dans CONSOLIDATE_CITY :
 
-        ```{sql, eval=FALSE}
-                SELECT id 
-                FROM CONSOLIDATE_CITY 
-                WHERE LOWER(city_name) = '{city.lower()}';
+        ```sql
+        SELECT id 
+        FROM CONSOLIDATE_CITY 
+        WHERE LOWER(city_name) = '{city.lower()}';
         ```
-
+        
 2- **Association du code INSEE aux données des stations** : Une fois le code récupéré, il a été ajouté dans les données des stations en tant que city_code. Ce champ a ensuite été utilisé pour identifier les stations de manière unique et cohérente.
 
 ### Agrégation des données
