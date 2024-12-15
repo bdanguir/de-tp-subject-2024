@@ -37,9 +37,10 @@ Voici comment cela a été fait :
 
 1- **Requête SQL dynamique** : Nous avons utilisé une requête SQL pour chercher le id (code INSEE) correspondant au nom de la ville dans CONSOLIDATE_CITY :
 
-        ```sql
-        
-        SELECT id FROM CONSOLIDATE_CITY WHERE LOWER(city_name) = '{city.lower()}';
+        ```{sql, eval=FALSE}
+                SELECT id 
+                FROM CONSOLIDATE_CITY 
+                WHERE LOWER(city_name) = '{city.lower()}';
         ```
 
 2- **Association du code INSEE aux données des stations** : Une fois le code récupéré, il a été ajouté dans les données des stations en tant que city_code. Ce champ a ensuite été utilisé pour identifier les stations de manière unique et cohérente.
@@ -51,32 +52,6 @@ Nous n'avons apporté aucune modification à cette partie. Le code reste le mêm
 ### Le fichier main.py
 
 Le fichier `main.py` contient le code principal du processus et exécute séquentiellement les différentes fonctions expliquées plus haut.
-
-### Requêtes sql à exécuter
-
-Enfin, les requêtes sql que nous avions à exécuter sont :
-
-```sql
--- Nb d'emplacements disponibles de vélos dans une ville
-SELECT dm.NAME, tmp.SUM_BICYCLE_DOCKS_AVAILABLE
-FROM DIM_CITY dm INNER JOIN (
-    SELECT CITY_ID, SUM(BICYCLE_DOCKS_AVAILABLE) AS SUM_BICYCLE_DOCKS_AVAILABLE
-    FROM FACT_STATION_STATEMENT
-    WHERE CREATED_DATE = (SELECT MAX(CREATED_DATE) FROM CONSOLIDATE_STATION)
-    GROUP BY CITY_ID
-) tmp ON dm.ID = tmp.CITY_ID
-WHERE lower(dm.NAME) in ('paris', 'nantes', 'vincennes', 'toulouse');
-
--- Nb de vélos disponibles en moyenne dans chaque station
-SELECT ds.name, ds.code, ds.address, tmp.avg_dock_available
-FROM DIM_STATION ds JOIN (
-    SELECT station_id, AVG(BICYCLE_AVAILABLE) AS avg_dock_available
-    FROM FACT_STATION_STATEMENT
-    GROUP BY station_id
-) AS tmp ON ds.id = tmp.station_id;
-```
-
-Voici ce que retourne notre code :
 
 # Allons plus loin : Construction du pipeline sur Azure (ETL)
 
